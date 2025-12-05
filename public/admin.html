@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FastPayZone Admin Panel</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial;
+        background: #f3f4f6;
+        padding: 15px;
+    }
+
+    .card {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .btn {
+        background: #4f46e5;
+        color: white;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        margin-top: 6px;
+        cursor: pointer;
+    }
+
+    input {
+        padding: 8px;
+        width: 95%;
+        border-radius: 8px;
+        margin-top: 8px;
+        border: 1px solid #ccc;
+    }
+
+    img {
+        max-width: 200px;
+        margin-top: 8px;
+        border-radius: 8px;
+    }
+
+    .dep-block {
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+        margin-bottom: 10px;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>FastPayZone — Admin Panel</h2>
+
+<!-- ADMIN LOGIN -->
+<div class="card">
+    <label>Admin Password:</label>
+    <input id="adminPass" type="password" placeholder="Enter admin pass" />
+    <button class="btn" onclick="loadDeposits()">Load Pending Deposits</button>
+    <button class="btn" onclick="loadWithdraws()">Load Withdraw Requests</button>
+</div>
+
+<!-- DEPOSIT LIST -->
+<div class="card">
+    <h3>Pending Deposits</h3>
+    <div id="deposits">Click "Load Pending Deposits"</div>
+</div>
+
+<!-- WITHDRAW LIST -->
+<div class="card">
+    <h3>Pending Withdraw Requests</h3>
+    <div id="withdraws">Click "Load Withdraw Requests"</div>
+</div>
+
+<script>
+const API = "";  
+// EMPTY because frontend auto-detects same domain
+// Render backend will work automatically when URL is correct
+
+async function api(url, options = {}) {
+    const pass = document.getElementById("adminPass").value;
+
+    if (!options.headers) options.headers = {};
+    options.headers["x-admin-pass"] = pass;
+
+    const res = await fetch(url, options);
+    return res.json();
+}
+
+// LOAD DEPOSITS
+async function loadDeposits() {
+    const data = await api("/admin/deposits");
+
+    if (data.error) {
+        document.getElementById("deposits").innerHTML = data.error;
+        return;
+    }
+
+    let html = "";
+    data.pending.forEach(d => {
+        html += `
+        <div class="dep-block">
+            <b>ID:</b> ${d.id}<br>
+            <b>User:</b> ${d.user_id}<br>
+            <b>Amount:</b> ₹${d.amount}<br>
+            ${d.screenshot ? `<img src="${d.screenshot}" />` : ""}
+            <br>
+            <button class="btn" onclick="verifyDeposit('${d.id}')">Verify Deposit</button>
+        </div>`;
+    });
+
+    if (!html) html = "No pending deposits";
+
+    document.getElementById("deposits").innerHTML = html;
+}
+
+// VERIFY DEPOSIT
+async function verifyDeposit(id) {
+    const data = await api(`/admin/deposits/${id}/verify`, {
+        method: "POST"
+    });
+
+    if (data.ok) {
+        alert("Deposit Verified");
+        loadDeposits();
+    } else {
+        alert(data.error);
+    }
+}
+
+// LOAD WITHDRAW REQUESTS
+async function loadWithdraws() {
+    const data = await api("/admin/withdraws");
+
+    if (data.error) {
+        document.getElementById("withdraws").innerHTML = data.error;
+        return;
+    }
+
+    let html = "";
+    data.list.forEach(w => {
+        html += `
+        <div class="dep-block">
+            <b>ID:</b> ${w.id}<br>
+            <b>User:</b> ${w.user_id}<br>
+            <b>Amount:</b> ₹${w.amount}<br>
+            <b>Fee:</b> ₹${w.fee}<br>
+            <b>User Gets:</b> ₹${w.payout_amount}<br>
+            <b>UPI:</b> ${w.payout_upi}<br>
+            <button class="btn" onclick="completeWithdraw('${w.id}')">Mark Completed</button>
+        </div>
+        `;
+    });
+
+    if (!html) html = "No pending withdrawals";
+
+    document.getElementById("withdraws").innerHTML = html;
+}
+
+// COMPLETE WITHDRAW
+async function completeWithdraw(id) {
+    const data = await api(`/admin/withdraws/${id}/complete`, {
+        method: "POST"
+    });
+
+    if (data.ok) {
+        alert("Withdraw Completed");
+        loadWithdraws();
+    } else {
+        alert(data.error);
+    }
+}
+</script>
+
+</body>
+</html>
