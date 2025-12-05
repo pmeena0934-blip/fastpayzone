@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FastPayZone</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial;
+        background: linear-gradient(180deg, #12002f, #240046);
+        color: white;
+        padding: 16px;
+    }
+
+    .card {
+        background: rgba(255,255,255,0.1);
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+    }
+
+    .btn {
+        background: linear-gradient(90deg,#9b5bff,#6f2dbd);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 10px;
+        color: white;
+        cursor: pointer;
+        font-size: 15px;
+        margin-top: 8px;
+    }
+
+    input, select {
+        width: 95%;
+        padding: 10px;
+        margin-top: 8px;
+        border-radius: 8px;
+        border: none;
+        outline: none;
+    }
+
+    #deposit, #withdraw {
+        display: none;
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        max-width: 350px;
+        width: 90%;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>FastPayZone — Wallet</h2>
+
+<!-- LOGIN AREA -->
+<div class="card" id="authArea">
+    <h3>Login / Register</h3>
+
+    <div id="recaptcha-container"></div>
+
+    <input id="phone" placeholder="+91XXXXXXXXXX" />
+    <button class="btn" onclick="sendOTP()">Send OTP</button>
+
+    <input id="otp" placeholder="Enter OTP" />
+    <button class="btn" onclick="verifyOTP()">Verify OTP</button>
+
+    <button class="btn" onclick="googleSign()">Login with Google</button>
+</div>
+
+<!-- USER AREA -->
+<div class="card" id="userArea" style="display:none;">
+    <h3 id="welcome"></h3>
+    <p>Wallet Balance: ₹<span id="bal">0</span></p>
+
+    <button class="btn" onclick="openDeposit()">Deposit</button>
+    <button class="btn" onclick="openWithdraw()">Withdraw</button>
+
+    <button class="btn" onclick="logout()">Logout</button>
+</div>
+
+<!-- DEPOSIT BOX -->
+<div id="deposit">
+    <div class="card">
+        <h3>Deposit Money</h3>
+
+        <input id="d_amt" type="number" placeholder="Amount (min ₹200)" />
+
+        <select id="d_upi">
+            <option value="poojamahta67-1@okicici">poojamahta67-1@okicici</option>
+            <option value="herry9336@ptyes">herry9336@ptyes</option>
+        </select>
+
+        <input type="file" id="d_ss" />
+
+        <button class="btn" onclick="submitDeposit()">Submit</button>
+        <button class="btn" onclick="closeDeposit()">Close</button>
+
+        <p id="d_msg"></p>
+    </div>
+</div>
+
+<!-- WITHDRAW BOX -->
+<div id="withdraw">
+    <div class="card">
+        <h3>Withdraw</h3>
+
+        <input id="w_amt" type="number" placeholder="Amount" oninput="calcWithdraw()" />
+
+        <input id="w_upi" placeholder="Your UPI ID" />
+
+        <p>Fee (10%): ₹<span id="w_fee">0</span></p>
+        <p>You Get: ₹<span id="w_get">0</span></p>
+
+        <button class="btn" onclick="submitWithdraw()">Request</button>
+        <button class="btn" onclick="closeWithdraw()">Close</button>
+
+        <p id="w_msg"></p>
+    </div>
+</div>
+
+<!-- FIREBASE AUTH SCRIPT -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+        getAuth, RecaptchaVerifier, signInWithPhoneNumber,
+        GoogleAuthProvider, signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    // YOUR FIREBASE CONFIG
+    const firebaseConfig = {
+        apiKey: "AIzaSyA6ux60jcxJ75G1iwCZruV-n5lLP2XXPqs",
+        authDomain: "relaxapp-1fece.firebaseapp.com",
+        projectId: "relaxapp-1fece",
+        storageBucket: "relaxapp-1fece.firebasestorage.app",
+        messagingSenderId: "533602489498",
+        appId: "1:533602489498:web:87ef87196fffb0edb73b23",
+        measurementId: "G-8S298J78SR"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Recaptcha invisible
+    window.recaptchaVerifier = new RecaptchaVerifier(
+        "recaptcha-container",
+        { size: "invisible" },
+        auth
+    );
+
+    // SEND OTP
+    async function sendOTP() {
+        const phone = document.getElementById("phone").value;
+        if (!phone) return alert("Phone required");
+
+        try {
+            const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+            window.confirmationResult = confirmation;
+            alert("OTP sent!");
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    // VERIFY OTP
+    async function verifyOTP() {
+        const code = document.getElementById("otp").value;
+        try {
+            const result = await window.confirmationResult.confirm(code);
+            onLogin(result.user);
+        } catch (e) {
+            alert("Wrong OTP");
+        }
+    }
+
+    // GOOGLE LOGIN
+    async function googleSign() {
+        try {
+            const provider = new GoogleAuthProvider();
+            const res = await signInWithPopup(auth, provider);
+            onLogin(res.user);
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    // LOGIN SUCCESS
+    function onLogin(user) {
+        document.getElementById("authArea").style.display = "none";
+        document.getElementById("userArea").style.display = "block";
+
+        document.getElementById("welcome").innerText =
+            "Welcome, " + (user.phoneNumber || user.displayName);
+
+        localStorage.setItem("fpz_user", user.uid);
+
+        document.getElementById("bal").innerText = "0"; // later backend fetch
+    }
+
+    function logout() {
+        auth.signOut();
+        localStorage.removeItem("fpz_user");
+        location.reload();
+    }
+
+    // DEPOSIT
+    function openDeposit() { document.getElementById("deposit").style.display = "block"; }
+    function closeDeposit() { document.getElementById("deposit").style.display = "none"; }
+
+    function submitDeposit() {
+        document.getElementById("d_msg").innerText =
+            "Deposit submitted — Admin will verify.";
+        closeDeposit();
+    }
+
+    // WITHDRAW
+    function openWithdraw() { 
+        document.getElementById("withdraw").style.display = "block"; 
+        calcWithdraw();
+    }
+    function closeWithdraw() { document.getElementById("withdraw").style.display = "none"; }
+
+    function calcWithdraw() {
+        let amt = Number(document.getElementById("w_amt").value);
+        let fee = amt * 0.1;
+        let get = amt - fee;
+
+        document.getElementById("w_fee").innerText = fee;
+        document.getElementById("w_get").innerText = get;
+    }
+
+    function submitWithdraw() {
+        document.getElementById("w_msg").innerText =
+            "Withdraw requested — Admin will process.";
+        closeWithdraw();
+    }
+</script>
+
+</body>
+</html>
