@@ -122,7 +122,15 @@
     </div>
 </div>
 
-<!-- FIREBASE AUTH SCRIPT -->
+<script>
+// 🔗 YOUR BACKEND API BASE URL
+const API_BASE = "https://fastpayzone.onrender.com";
+
+// Save logged user
+let USER_ID = null;
+</script>
+
+<!-- FIREBASE + MAIN SCRIPT -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { 
@@ -130,7 +138,7 @@
         GoogleAuthProvider, signInWithPopup
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    // YOUR FIREBASE CONFIG
+    // Firebase Config
     const firebaseConfig = {
         apiKey: "AIzaSyA6ux60jcxJ75G1iwCZruV-n5lLP2XXPqs",
         authDomain: "relaxapp-1fece.firebaseapp.com",
@@ -144,7 +152,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Recaptcha invisible
     window.recaptchaVerifier = new RecaptchaVerifier(
         "recaptcha-container",
         { size: "invisible" },
@@ -170,7 +177,11 @@
         const code = document.getElementById("otp").value;
         try {
             const result = await window.confirmationResult.confirm(code);
-            onLogin(result.user);
+            const user = result.user;
+
+            await registerToBackend(user);
+
+            onLogin(user);
         } catch (e) {
             alert("Wrong OTP");
         }
@@ -180,11 +191,33 @@
     async function googleSign() {
         try {
             const provider = new GoogleAuthProvider();
-            const res = await signInWithPopup(auth, provider);
-            onLogin(res.user);
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            await registerToBackend(user);
+
+            onLogin(user);
         } catch (e) {
             alert(e.message);
         }
+    }
+
+    // REGISTER USER IN BACKEND
+    async function registerToBackend(user) {
+        const phone = user.phoneNumber || "google";
+        const name = user.displayName || "User";
+
+        const res = await fetch(`${API_BASE}/api/user/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name,
+                phone
+            })
+        });
+
+        const data = await res.json();
+        USER_ID = data.user.id;
     }
 
     // LOGIN SUCCESS
@@ -195,14 +228,11 @@
         document.getElementById("welcome").innerText =
             "Welcome, " + (user.phoneNumber || user.displayName);
 
-        localStorage.setItem("fpz_user", user.uid);
-
-        document.getElementById("bal").innerText = "0"; // later backend fetch
+        document.getElementById("bal").innerText = "0";
     }
 
     function logout() {
         auth.signOut();
-        localStorage.removeItem("fpz_user");
         location.reload();
     }
 
@@ -210,7 +240,22 @@
     function openDeposit() { document.getElementById("deposit").style.display = "block"; }
     function closeDeposit() { document.getElementById("deposit").style.display = "none"; }
 
-    function submitDeposit() {
+    async function submitDeposit() {
+        const amt = document.getElementById("d_amt").value;
+        const upi = document.getElementById("d_upi").value;
+        const screenshot = document.getElementById("d_ss").files[0];
+
+        const form = new FormData();
+        form.append("user_id", USER_ID);
+        form.append("amount", amt);
+        form.append("upi", upi);
+        form.append("screenshot", screenshot);
+
+        await fetch(`${API_BASE}/api/deposit/manual`, {
+            method: "POST",
+            body: form
+        });
+
         document.getElementById("d_msg").innerText =
             "Deposit submitted — Admin will verify.";
         closeDeposit();
@@ -232,7 +277,20 @@
         document.getElementById("w_get").innerText = get;
     }
 
-    function submitWithdraw() {
+    async function submitWithdraw() {
+        const amt = document.getElementById("w_amt").value;
+        const upi = document.getElementById("w_upi").value;
+
+        await fetch(`${API_BASE}/api/withdraw/request`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: USER_ID,
+                amount: amt,
+                upi
+            })
+        });
+
         document.getElementById("w_msg").innerText =
             "Withdraw requested — Admin will process.";
         closeWithdraw();
