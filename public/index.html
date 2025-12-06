@@ -17,6 +17,8 @@
     @media(max-width:680px){ .row{flex-direction:column} }
     #deposit,#withdraw{display:none;position:fixed;right:12px;bottom:12px;max-width:380px;width:94%}
     .small{font-size:13px;color:#e6dbff}
+    #fpz_debug{position:fixed;left:8px;top:8px;z-index:9999;padding:8px;background:rgba(0,0,0,0.55);color:#fff;border-radius:8px;font-size:13px;max-width:calc(100% - 20px);}
+    #fpz_debug .line{margin-bottom:6px}
   </style>
 </head>
 <body>
@@ -36,11 +38,11 @@
 
       <div class="row">
         <input id="otp" placeholder="OTP" />
-        <button class="btn" onclick="verifyOTP()">Verify</button>
+        <button class="btn" id="verifyBtn" onclick="verifyOTP()">Verify</button>
       </div>
 
       <div style="margin-top:8px">
-        <button class="btn" onclick="sendOTP()">Send OTP</button>
+        <button class="btn" id="sendBtn" onclick="sendOTP()">Send OTP</button>
         <button class="btn" onclick="googleSign()">Sign in with Google</button>
       </div>
       <div id="authMsg" class="small" style="margin-top:8px"></div>
@@ -69,7 +71,7 @@
     </section>
 
     <footer class="card small">
-      Note: Withdrawal fee 10%. For live OTP/Google -> add your Netlify domain in Firebase Authorized domains.
+      Note: Withdrawal fee 10%. For live OTP/Google -> add your domain (fastpayzone.onrender.com) in Firebase Authorized domains.
     </footer>
   </div>
 
@@ -102,15 +104,21 @@
     <div id="w_msg" class="small" style="margin-top:8px"></div>
   </div>
 
+  <!-- debug box -->
+  <div id="fpz_debug"><div class="line"><b>FPZ Debug</b></div><div id="fpz_msgs"></div></div>
+
   <!-- SCRIPT -->
   <script>
-    // Backend URL (already set)
     const API_BASE = "https://fastpayzone.onrender.com";
-    let CURRENT_USER = null; // will hold { uid, phone, backend_id }
+    let CURRENT_USER = null;
 
-    // helper to show messages
-    function showAuthMsg(txt){ document.getElementById('authMsg').innerText = txt; }
-    function showUserMsg(txt){ document.getElementById('userMsg').innerText = txt; }
+    function dbg(msg){
+      console.log('FPZ-DBG:', msg);
+      const m = document.getElementById('fpz_msgs');
+      if(m) m.innerHTML = (new Date()).toLocaleTimeString() + ' — ' + msg + '<br/>' + m.innerHTML;
+    }
+    function showAuthMsg(txt){ document.getElementById('authMsg').innerText = txt; dbg(txt); }
+    function showUserMsg(txt){ document.getElementById('userMsg').innerText = txt; dbg(txt); }
 
     function openDeposit(){ document.getElementById('deposit').style.display='block'; }
     function closeDeposit(){ document.getElementById('deposit').style.display='none'; }
@@ -130,58 +138,103 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    // ====== PASTE YOUR FIREBASE CONFIG HERE (from your project) ======
+    // --- YOUR FIREBASE CONFIG (use exactly this or replace with your project's) ---
     const firebaseConfig = {
-  apiKey: "AIzaSyCzioy8Julx4QfwhQxIGOLo1GRS2PHtBP0",
-  authDomain: "fastpayzone.firebaseapp.com",
-  projectId: "fastpayzone",
-  storageBucket: "fastpayzone.firebasestorage.app",
-  messagingSenderId: "236438267358",
-  appId: "1:236438267358:web:58de03cc82224e3f3ba94f",
-  measurementId: "G-ZGHX51CG0B"
-};
-    // =================================================================
+      apiKey: "AIzaSyCzioy8Julx4QfwhQxIGOLo1GRS2PHtBP0",
+      authDomain: "fastpayzone.firebaseapp.com",
+      projectId: "fastpayzone",
+      storageBucket: "fastpayzone.firebasestorage.app",
+      messagingSenderId: "236438267358",
+      appId: "1:236438267358:web:58de03cc82224e3f3ba94f"
+    };
+    // --------------------------------------------------------------------------------
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // invisible reCAPTCHA (must keep div #recaptcha-container in HTML)
-    window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
-
-    // send OTP
-    async function sendOTP(){
-      const phone = document.getElementById('phone').value.trim();
-      if(!phone){ showAuthMsg('Phone number daalo (+91...)'); return; }
+    // initialise recaptcha safely (avoid double-init)
+    function initRecaptcha(){
       try{
-        showAuthMsg('OTP bhej rahe hain...');
+        if(window.recaptchaVerifier && typeof window.recaptchaVerifier.clear === 'function'){
+          // already exists — clear and recreate to be safe
+          try{ window.recaptchaVerifier.clear(); }catch(e){ dbg('recap clear err:'+e.message); }
+        }
+      }catch(e){}
+      window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+      dbg('recaptchaVerifier created');
+    }
+    initRecaptcha();
+
+    // helper to format phone: if 10 digits -> add +91
+    function normalizePhone(input){
+      let v = String(input || '').trim();
+      v = v.replace(/\s+/g,'').replace(/[^0-9\+]/g,'');
+      if(v.startsWith('0')) v = v.replace(/^0+/, '');
+      // if exactly 10 digits, assume India +91
+      if(/^\d{10}$/.test(v)) v = '+91' + v;
+      // if starts with country code without plus like 9198... add plus
+      if(/^[0-9]{11,}$/.test(v) && !v.startsWith('+')) v = '+' + v;
+      return v;
+    }
+
+    // SEND OTP
+    async function sendOTP(){
+      const raw = document.getElementById('phone').value;
+      const phone = normalizePhone(raw);
+      if(!phone){ showAuthMsg('Phone number daalo (+91...)'); return; }
+      showAuthMsg('OTP bhej rahe hain to ' + phone + ' ...');
+
+      try{
+        // ensure recaptcha is fresh
+        try{ if(!window.recaptchaVerifier) initRecaptcha(); }catch(e){ dbg('recap init err:'+e.message); }
+
         const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
         window.confirmationResult = confirmation;
         showAuthMsg('OTP bhej diya gaya. OTP daalkar Verify karo.');
+        dbg('confirmationResult set');
+        // start a small cooldown on Send button
+        cooldownSendBtn();
       }catch(err){
-        console.error(err);
+        console.error('sendOTP err', err);
         showAuthMsg('OTP send error: ' + (err.message || err));
-        // reset recaptcha on error
-        try{ window.recaptchaVerifier.clear(); }catch(e){}
-        window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+        // try recreate recaptcha if something went wrong
+        try{ initRecaptcha(); }catch(e){ dbg('recap recreate err:'+e.message); }
       }
     }
+    // cooldown to avoid multiple sends
+    function cooldownSendBtn(){
+      const btn = document.getElementById('sendBtn');
+      if(!btn) return;
+      btn.disabled = true;
+      let sec = 25;
+      const orig = btn.innerText;
+      btn.innerText = 'Wait ' + sec + 's';
+      const t = setInterval(()=>{
+        sec--;
+        if(sec<=0){ clearInterval(t); btn.disabled=false; btn.innerText = 'Send OTP'; }
+        else btn.innerText = 'Wait ' + sec + 's';
+      },1000);
+    }
 
-    // verify OTP
+    // VERIFY OTP
     async function verifyOTP(){
       const code = document.getElementById('otp').value.trim();
       if(!code){ showAuthMsg('OTP daalo'); return; }
+      if(!window.confirmationResult){ showAuthMsg('Please press Send OTP first'); return; }
+      showAuthMsg('OTP verify kar rahe hain...');
       try{
         const result = await window.confirmationResult.confirm(code);
         const user = result.user;
+        dbg('verify success user: ' + (user.phoneNumber || user.uid || 'user'));
         await registerBackendUser(user);
         onLogin(user);
       }catch(err){
-        console.error(err);
+        console.error('verify err', err);
         showAuthMsg('OTP verification failed: ' + (err.message || err));
       }
     }
 
-    // Google sign-in
+    // GOOGLE sign-in
     async function googleSign(){
       try{
         const provider = new GoogleAuthProvider();
@@ -190,12 +243,12 @@
         await registerBackendUser(user);
         onLogin(user);
       }catch(err){
-        console.error(err);
+        console.error('google err', err);
         showAuthMsg('Google sign-in error: ' + (err.message || err));
       }
     }
 
-    // register user in backend (create if not exists)
+    // backend register
     async function registerBackendUser(firebaseUser){
       const phone = firebaseUser.phoneNumber || firebaseUser.email || 'unknown';
       const name = firebaseUser.displayName || 'User';
@@ -209,17 +262,16 @@
         if(j && j.user && j.user.id){
           CURRENT_USER = { uid: firebaseUser.uid, phone, backend_id: j.user.id };
           localStorage.setItem('fpz_user', JSON.stringify(CURRENT_USER));
+          dbg('backend created user id='+ j.user.id);
           return;
         }
       }catch(e){
         console.error('registerBackendUser err', e);
       }
-      // fallback: store at least firebase uid
       CURRENT_USER = { uid: firebaseUser.uid, phone, backend_id: null };
       localStorage.setItem('fpz_user', JSON.stringify(CURRENT_USER));
     }
 
-    // on successful login UI updates + fetch wallet
     function onLogin(user){
       document.getElementById('authCard').style.display = 'none';
       document.getElementById('userCard').style.display = 'block';
@@ -227,7 +279,6 @@
       document.getElementById('userPhone').innerText = user.phoneNumber || user.email || '';
       showAuthMsg('');
       showUserMsg('Logged in');
-      // fetch backend data if backend_id present
       const saved = localStorage.getItem('fpz_user');
       if(saved){
         const obj = JSON.parse(saved);
@@ -235,15 +286,12 @@
       }
     }
 
-    // try restore session on load
     (function restore(){
       const s = localStorage.getItem('fpz_user');
       if(s){
         CURRENT_USER = JSON.parse(s);
         if(CURRENT_USER && CURRENT_USER.backend_id){
-          // fetch user info
           fetchUser(CURRENT_USER.backend_id);
-          // show basic UI
           document.getElementById('authCard').style.display='none';
           document.getElementById('userCard').style.display='block';
           document.getElementById('welcome').innerText = 'Welcome';
@@ -262,10 +310,9 @@
       }catch(e){ console.error('fetchUser',e); }
     }
 
-    // logout
     function logout(){ auth.signOut().then(()=>{ localStorage.removeItem('fpz_user'); location.reload(); }); }
 
-    // deposit submit
+    // deposit / withdraw functions unchanged
     async function submitDeposit(){
       const amt = Number(document.getElementById('d_amt').value||0);
       const upi = document.getElementById('d_upi').value;
@@ -289,7 +336,6 @@
       }catch(e){ console.error(e); document.getElementById('d_msg').innerText = 'Network error'; }
     }
 
-    // withdraw submit
     async function submitWithdraw(){
       if(!CURRENT_USER || !CURRENT_USER.backend_id){ alert('Please login first'); return; }
       const amt = Number(document.getElementById('w_amt').value||0);
@@ -307,6 +353,7 @@
         else document.getElementById('w_msg').innerText = (j.error || 'Withdraw error');
       }catch(e){ console.error(e); document.getElementById('w_msg').innerText='Network error'; }
     }
+
   </script>
 </body>
 </html>
