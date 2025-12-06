@@ -1,58 +1,116 @@
 <!doctype html>
 <html lang="hi">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>FastPayZone — DEBUG</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FastPayZone — Wallet · Deposit · Withdraw · Referral</title>
   <style>
-    :root{--bg1:#12002f;--bg2:#240046;--card:rgba(255,255,255,0.06);--btn-grad:linear-gradient(90deg,#9b5bff,#6f2dbd)}
-    body{margin:0;font-family:Inter,Arial,Helvetica;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#fff;padding:18px}
-    .wrap{max-width:920px;margin:0 auto}
-    .card{background:var(--card);padding:14px;border-radius:12px;margin-bottom:14px}
+    :root{
+      --bg1:#12002f; --bg2:#240046;
+      --card:rgba(255,255,255,0.06);
+      --btn-grad:linear-gradient(90deg,#9b5bff,#6f2dbd);
+      --accent:#9b5bff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,Helvetica;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#fff}
+    header.site-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;background:transparent;position:sticky;top:0;z-index:50}
+    .brand{font-weight:800;font-size:20px}
+    nav .btn{padding:8px 12px;border-radius:10px;background:var(--btn-grad);border:none;color:#fff;cursor:pointer}
+    .hero{padding:36px 20px;text-align:center}
+    .hero h1{font-size:32px;margin-bottom:8px}
+    .hero p{color:#e9d9ff;margin-bottom:16px}
+    .wrap{max-width:980px;margin:0 auto}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:18px}
+    .card{background:var(--card);padding:16px;border-radius:12px}
+    .cta{margin-top:14px}
+    footer.site-footer{padding:18px;text-align:center;color:#d8c5ff;font-size:14px}
+
+    /* modal */
+    .modal-backdrop{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:100}
+    .modal{width:94%;max-width:420px;background:var(--card);border-radius:12px;padding:16px}
+    .modal h3{margin:0 0 8px 0}
     input,select{width:100%;padding:10px;border-radius:8px;border:none;margin-top:8px;background:rgba(255,255,255,0.03);color:#fff}
-    .btn{display:inline-block;padding:10px 14px;border-radius:10px;color:#fff;text-decoration:none;border:none;cursor:pointer;background:var(--btn-grad);margin-top:8px}
-    .row{display:flex;gap:10px}
-    #debugBox{position:fixed;left:12px;top:12px;z-index:9999;background:rgba(0,0,0,0.6);padding:8px;border-radius:8px;max-width:calc(100% - 40px);font-size:13px;}
-    #logs{max-height:220px;overflow:auto;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;margin-top:8px;color:#fff}
-    pre{white-space:pre-wrap;word-break:break-word}
-    .error{color:#ff8b8b}
-    .ok{color:#8bffb8}
+    .row{display:flex;gap:8px}
+    .btn-full{display:block;width:100%;padding:12px;border-radius:10px;border:none;background:var(--btn-grad);color:#fff;cursor:pointer;margin-top:8px}
     .small{font-size:13px;color:#d8c5ff}
+
+    /* responsive */
+    @media(max-width:600px){ .hero h1{font-size:24px} .features{grid-template-columns:1fr} .row{flex-direction:column} }
   </style>
 </head>
 <body>
-  <div id="debugBox">
-    <div><b>FPZ DEBUG</b> — Logs below</div>
-    <div id="logs"><pre id="logpre">Ready.</pre></div>
-  </div>
+  <!-- header with Register/Login -->
+  <header class="site-header">
+    <div class="wrap" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div class="brand">FastPayZone</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn" onclick="openModal()">Register / Login</button>
+      </div>
+    </div>
+  </header>
 
-  <div class="wrap">
-    <header class="card">
-      <h1>FastPayZone (DEBUG)</h1>
-      <div class="small">This page shows detailed debug logs. Use test number +919999999999 with OTP 123456 for instant login.</div>
-    </header>
+  <!-- HERO / HOME -->
+  <section class="hero">
+    <div class="wrap">
+      <h1>FastPayZone — तेज़ और आसान UPI Wallet</h1>
+      <p>Deposit करो, Withdraw करो, Refer करो — और rewards पाओ। Free Fire / BGMI के लिए diamonds और Flipkart/Amazon gift cards भी मिलते हैं.</p>
+      <div style="display:flex;gap:10px;justify-content:center" class="cta">
+        <button class="btn" onclick="openModal()">Get Started</button>
+        <a href="#features" class="btn" style="background:transparent;border:1px solid rgba(255,255,255,0.06)">Learn More</a>
+      </div>
+    </div>
+  </section>
 
-    <section class="card">
+  <!-- FEATURES -->
+  <section id="features" class="wrap">
+    <div class="features">
+      <div class="card">
+        <h4>Wallet</h4>
+        <p class="small">Secure wallet to store your balance and withdraw via UPI.</p>
+      </div>
+      <div class="card">
+        <h4>Deposit (UPI)</h4>
+        <p class="small">Manual UPI deposit — upload screenshot, admin verifies.</p>
+      </div>
+      <div class="card">
+        <h4>Withdraw</h4>
+        <p class="small">Withdraw to your UPI — 10% fee on withdrawals.</p>
+      </div>
+      <div class="card">
+        <h4>Referral</h4>
+        <p class="small">Refer friends — they deposit ₹200, you get ₹100.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    © <span id="year"></span> FastPayZone — Payment IDs: poojamahta67-1@okicici, herry9336@ptyes
+  </footer>
+
+  <!-- Modal (register/login) -->
+  <div id="authModal" class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
       <h3>Login / Register</h3>
       <div id="recaptcha-container"></div>
-
       <label class="small">Phone (with +91)</label>
       <input id="phone" placeholder="+919876543210" />
 
-      <div class="row">
+      <div class="row" style="margin-top:8px">
         <input id="otp" placeholder="OTP" />
         <button class="btn" id="verifyBtn" onclick="verifyOTP()">Verify</button>
       </div>
 
       <div style="margin-top:8px">
-        <button class="btn" id="sendBtn" onclick="sendOTP()">Send OTP</button>
-        <button class="btn" onclick="googleSign()">Sign in with Google</button>
+        <button class="btn-full" id="sendBtn" onclick="sendOTP()">Send OTP</button>
+        <button class="btn-full" onclick="googleSign()">Sign in with Google</button>
       </div>
+      <div id="authMsg" class="small" style="margin-top:8px"></div>
+    </div>
+  </div>
 
-      <div id="authMsg" style="margin-top:10px" class="small"></div>
-    </section>
-
-    <section id="userCard" class="card" style="display:none">
+  <!-- user area (hidden until login) -->
+  <section id="userArea" class="wrap" style="display:none;margin-top:14px">
+    <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
           <div id="welcome" style="font-weight:700">Welcome</div>
@@ -63,64 +121,55 @@
           <div id="bal" style="font-weight:800;font-size:18px">₹0.00</div>
         </div>
       </div>
-      <div style="margin-top:12px" class="row">
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <button class="btn" onclick="openDeposit()">Deposit</button>
+        <button class="btn" onclick="openWithdraw()">Withdraw</button>
         <button class="btn" onclick="logout()">Logout</button>
       </div>
-      <div id="userMsg" class="small" style="margin-top:8px"></div>
-    </section>
+    </div>
+  </section>
+
+  <!-- deposit/withdraw drawers (same as before) -->
+  <div id="deposit" class="card" style="display:none;position:fixed;right:12px;bottom:12px;max-width:380px;width:94%">
+    <h4>Deposit (Manual UPI)</h4>
+    <input id="d_amt" type="number" placeholder="Amount (min 200)" />
+    <select id="d_upi">
+      <option value="poojamahta67-1@okicici">poojamahta67-1@okicici</option>
+      <option value="herry9336@ptyes">herry9336@ptyes</option>
+    </select>
+    <input id="d_ss" type="file" accept="image/*" />
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="submitDeposit()">Submit</button>
+      <button class="btn" onclick="closeDeposit()">Close</button>
+    </div>
+    <div id="d_msg" class="small" style="margin-top:8px"></div>
   </div>
 
-  <!-- debug + scripts -->
+  <div id="withdraw" class="card" style="display:none;position:fixed;right:12px;bottom:12px;max-width:380px;width:94%">
+    <h4>Withdraw</h4>
+    <input id="w_amt" type="number" placeholder="Amount" oninput="calcWithdraw()" />
+    <input id="w_upi" placeholder="Payout UPI (example@bank)" />
+    <div style="margin-top:8px" class="small">Fee (10%): ₹<span id="w_fee">0</span> — You Get: ₹<span id="w_get">0</span></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="submitWithdraw()">Request</button>
+      <button class="btn" onclick="closeWithdraw()">Close</button>
+    </div>
+    <div id="w_msg" class="small" style="margin-top:8px"></div>
+  </div>
+
   <script>
+    document.getElementById('year').innerText = new Date().getFullYear();
     const API_BASE = "https://fastpayzone.onrender.com";
-    function appendLog(txt, cls){ const p = document.getElementById('logpre'); p.innerText = (new Date().toLocaleTimeString()) + ' - ' + txt + '\n' + p.innerText; if(cls==='error') p.style.color='#ff8b8b'; }
-    function showAuthMsg(t){ document.getElementById('authMsg').innerText = t; appendLog(t); }
-    function dbg(t){ appendLog(t); console.log('FPZDBG:', t); }
-
-    // small util
-    function normalizePhone(input){
-      let v = String(input || '').trim();
-      v = v.replace(/\s+/g,'').replace(/[^0-9\+]/g,'');
-      if(v.startsWith('0')) v = v.replace(/^0+/, '');
-      if(/^\d{10}$/.test(v)) v = '+91' + v;
-      if(/^[0-9]{11,}$/.test(v) && !v.startsWith('+')) v = '+' + v;
-      return v;
-    }
-
-    // monitor network fetch (wrap)
-    async function safeFetch(url, opts){
-      dbg('FETCH -> ' + url + ' ' + (opts && opts.method ? opts.method : 'GET'));
-      try{
-        const r = await fetch(url, opts);
-        const text = await r.text();
-        dbg('FETCH RESULT ' + url + ' => status:' + r.status + ' body:' + text.slice(0,500));
-        let json = null;
-        try{ json = JSON.parse(text); }catch(e){}
-        return { ok: r.ok, status: r.status, text, json };
-      }catch(e){
-        dbg('FETCH ERROR ' + url + ' => ' + e.message);
-        return { ok:false, error: String(e) };
-      }
-    }
-
-    // UI helpers
-    function showUserArea(user){
-      document.getElementById('authMsg').innerText = '';
-      document.getElementById('authCard')?.style?.display && (document.getElementById('authCard').style.display='none');
-      document.getElementById('userCard').style.display='block';
-      document.getElementById('welcome').innerText = 'Welcome, ' + (user.displayName || user.phoneNumber || 'User');
-      document.getElementById('userPhone').innerText = user.phoneNumber || '';
-      dbg('User area shown for ' + (user.phoneNumber || user.uid));
-    }
-
-    // restore
-    (function restore(){
-      const s = localStorage.getItem('fpz_user');
-      if(s){ try{ const obj = JSON.parse(s); dbg('Found saved user: '+ (obj.phone || obj.uid)); }catch(e){} }
-    })();
+    function openModal(){ document.getElementById('authModal').style.display='flex'; document.body.style.overflow='hidden'; }
+    function closeModal(){ document.getElementById('authModal').style.display='none'; document.body.style.overflow='auto'; }
+    function openDeposit(){ document.getElementById('deposit').style.display='block'; }
+    function closeDeposit(){ document.getElementById('deposit').style.display='none'; }
+    function openWithdraw(){ document.getElementById('withdraw').style.display='block'; calcWithdraw(); }
+    function closeWithdraw(){ document.getElementById('withdraw').style.display='none'; }
+    function calcWithdraw(){ const a=Number(document.getElementById('w_amt').value||0); const fee=Math.round(a*0.1*100)/100; document.getElementById('w_fee').innerText=fee; document.getElementById('w_get').innerText=Math.round((a-fee)*100)/100; }
   </script>
 
-  <!-- Firebase + debug auth logic -->
+  <!-- firebase + auth (same logic as earlier, kept modular) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -137,97 +186,78 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // init recaptcha
-    function initRecap(){
-      try{
-        if(window.recaptchaVerifier && typeof window.recaptchaVerifier.clear === 'function'){ try{ window.recaptchaVerifier.clear(); }catch(e){} }
-      }catch(e){}
-      try{
-        window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container',{size:'invisible'}, auth);
-        dbg('recaptchaVerifier created');
-      }catch(e){
-        dbg('recaptcha create error: ' + (e && e.message ? e.message : e));
-      }
+    function initRecaptcha(){
+      try{ if(window.recaptchaVerifier && typeof window.recaptchaVerifier.clear==='function'){ try{ window.recaptchaVerifier.clear(); }catch(e){} } }catch(e){}
+      window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
     }
-    initRecap();
+    initRecaptcha();
 
-    // test bypass + normal flow with verbose errors
+    function normalizePhone(input){
+      let v = String(input||'').trim();
+      v = v.replace(/\s+/g,'').replace(/[^0-9\+]/g,'');
+      if(v.startsWith('0')) v = v.replace(/^0+/, '');
+      if(/^\d{10}$/.test(v)) v = '+91' + v;
+      if(/^[0-9]{11,}$/.test(v) && !v.startsWith('+')) v = '+' + v;
+      return v;
+    }
+
+    // test bypass (optional)
     function makeFakeConfirmation(){
-      return {
-        confirm: (code)=>{
-          dbg('Fake confirm called with code: ' + code);
-          return new Promise((res,rej)=>{
-            if(String(code).trim() === '123456'){
-              res({ user: { uid: 'test-'+Date.now(), phoneNumber: '+919999999999', displayName: 'Test User' } });
-            } else rej(new Error('Invalid test OTP'));
-          });
-        }
-      };
+      return { confirm: (code)=> new Promise((res,rej)=>{ if(String(code).trim()==='123456'){ res({ user:{ uid:'test-'+Date.now(), phoneNumber:'+919999999999', displayName:'Test User' } }); } else rej(new Error('Invalid test OTP')); }) };
     }
 
     async function sendOTP(){
       const raw = document.getElementById('phone').value;
       const phone = normalizePhone(raw);
-      dbg('sendOTP clicked -> ' + phone);
-      if(!phone){ showAuthMsg('Phone daalo'); return; }
+      if(!phone){ document.getElementById('authMsg').innerText='Phone daalo'; return; }
 
-      // TEST BYPASS: if this exact test number, create fake confirmation locally
-      if(phone === '+919999999999'){
+      if(phone === '+919999999999'){ // test bypass flow
         window.confirmationResult = makeFakeConfirmation();
-        showAuthMsg('Test confirmation ready (fake). Use OTP 123456 and press Verify.');
-        dbg('Fake confirmationResult created for test number');
+        document.getElementById('authMsg').innerText='Test confirmation ready — use OTP 123456';
         return;
       }
 
-      // normal firebase flow
       try{
-        showAuthMsg('Sending OTP to ' + phone + ' ...');
-        try{ if(!window.recaptchaVerifier) initRecap(); }catch(e){ dbg('recap init err: '+ (e && e.message)); }
+        document.getElementById('authMsg').innerText='OTP bhej rahe hain...';
+        if(!window.recaptchaVerifier) initRecaptcha();
         const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
         window.confirmationResult = confirmation;
-        showAuthMsg('OTP sent. Please enter OTP and press Verify.');
-        dbg('confirmationResult (firebase) set');
-      }catch(err){
-        dbg('sendOTP error: ' + (err && err.message ? err.message : String(err)));
-        showAuthMsg('Send OTP failed: ' + (err && err.message ? err.message : String(err)));
-        // surface detailed error
-        const logs = document.getElementById('logpre');
-        logs.innerText = (new Date()).toLocaleTimeString() + ' - sendOTP error: ' + (err && err.message ? err.message : String(err)) + '\n' + logs.innerText;
+        document.getElementById('authMsg').innerText='OTP bhej diya — OTP daalkar Verify karo';
+      }catch(e){
+        console.error(e);
+        document.getElementById('authMsg').innerText='Send OTP error: '+(e.message||e);
+        try{ initRecaptcha(); }catch(e){}
       }
     }
 
     async function verifyOTP(){
       const code = document.getElementById('otp').value.trim();
-      const raw = document.getElementById('phone').value;
-      const phone = normalizePhone(raw);
-      dbg('verifyOTP clicked for ' + phone + ' code:' + code);
-      if(!code){ showAuthMsg('OTP daalo'); return; }
-      if(!window.confirmationResult){ showAuthMsg('Press Send OTP first (or use test number)'); dbg('No confirmationResult present'); return; }
-
+      if(!code){ document.getElementById('authMsg').innerText='OTP daalo'; return; }
+      if(!window.confirmationResult){ document.getElementById('authMsg').innerText='Please press Send OTP first (or use test number)'; return; }
+      document.getElementById('authMsg').innerText='Verifying...';
       try{
-        showAuthMsg('Verifying OTP...');
-        const result = await window.confirmationResult.confirm(code);
-        dbg('confirm returned result');
-        const user = result.user;
-        showAuthMsg('Verified: ' + (user.phoneNumber || user.uid));
-        // call backend create user (demo)
+        const res = await window.confirmationResult.confirm(code);
+        const user = res.user;
+        // attempt backend create
         try{
-          const resp = await safeFetch(API_BASE + '/api/user/create', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ name: user.displayName || 'User', phone: user.phoneNumber || user.email || 'unknown' })
-          });
-          if(resp.ok && resp.json && resp.json.user){
-            dbg('Backend created user id=' + resp.json.user.id);
-            localStorage.setItem('fpz_user', JSON.stringify({ uid: user.uid, phone: user.phoneNumber, backend_id: resp.json.user.id }));
+          const r = await fetch(API_BASE + '/api/user/create',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: user.displayName||'User', phone: user.phoneNumber||user.email||'unknown' })});
+          const j = await r.json();
+          if(j && j.user && j.user.id){
+            localStorage.setItem('fpz_user', JSON.stringify({ uid: user.uid, phone: user.phoneNumber, backend_id: j.user.id }));
           } else {
-            dbg('Backend create response not ok: ' + resp.status + ' ' + (resp.text||''));
+            localStorage.setItem('fpz_user', JSON.stringify({ uid: user.uid, phone: user.phoneNumber, backend_id: null }));
           }
-        }catch(e){ dbg('backend create error: ' + e.message); }
-        showUserArea(user);
-      }catch(err){
-        dbg('verify error: ' + (err && err.message ? err.message : String(err)));
-        showAuthMsg('Verify failed: ' + (err && err.message ? err.message : String(err)));
+        }catch(e){ console.error('backend create err', e); localStorage.setItem('fpz_user', JSON.stringify({ uid: user.uid, phone: user.phoneNumber, backend_id: null })); }
+
+        // show user area and close modal
+        document.getElementById('authModal').style.display='none';
+        document.getElementById('userArea').style.display='block';
+        document.getElementById('welcome').innerText = 'Welcome, ' + (user.displayName || user.phoneNumber || 'User');
+        document.getElementById('userPhone').innerText = user.phoneNumber || '';
+        document.getElementById('authMsg').innerText='';
+      }catch(e){
+        console.error(e);
+        document.getElementById('authMsg').innerText='Verify failed: '+(e.message||e);
       }
     }
 
@@ -236,27 +266,70 @@
         const provider = new GoogleAuthProvider();
         const res = await signInWithPopup(auth, provider);
         const user = res.user;
-        dbg('Google sign-in success: ' + (user.email || user.uid));
-        // same backend create call
+        // backend create
         try{
-          const resp = await safeFetch(API_BASE + '/api/user/create', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ name: user.displayName || 'User', phone: user.phoneNumber || user.email || 'unknown' })
-          });
-          dbg('backend create after google: ' + (resp.status || 'no-status'));
-        }catch(e){ dbg('backend create google err: '+ e.message); }
-        showUserArea(user);
+          await fetch(API_BASE + '/api/user/create',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: user.displayName||'User', phone: user.phoneNumber||user.email||'unknown' })});
+        }catch(e){}
+        document.getElementById('authModal').style.display='none';
+        document.getElementById('userArea').style.display='block';
+        document.getElementById('welcome').innerText = 'Welcome, ' + (user.displayName || user.email || 'User');
+        document.getElementById('userPhone').innerText = user.email || user.phoneNumber || '';
       }catch(e){
-        dbg('googleSign err: ' + (e && e.message ? e.message : e));
-        showAuthMsg('Google sign error: ' + (e && e.message ? e.message : e));
+        console.error(e);
+        document.getElementById('authMsg').innerText='Google sign error: '+(e.message||e);
       }
     }
 
     function logout(){ auth.signOut().then(()=>{ localStorage.removeItem('fpz_user'); location.reload(); }); }
 
-    // small helper to check firebase loaded correctly
-    setTimeout(()=>{ dbg('Auth object present? ' + (typeof auth !== 'undefined')); dbg('Recaptcha present? ' + !!window.recaptchaVerifier); }, 1500);
+    // restore session (if any)
+    (function restore(){
+      const s = localStorage.getItem('fpz_user');
+      if(s){
+        try{
+          const obj = JSON.parse(s);
+          if(obj){ document.getElementById('userArea').style.display='block'; document.getElementById('welcome').innerText='Welcome'; document.getElementById('userPhone').innerText = obj.phone || ''; }
+        }catch(e){}
+      }
+    })();
+
+    // deposit / withdraw functions (same as before)
+    async function submitDeposit(){
+      const amt = Number(document.getElementById('d_amt').value||0);
+      const upi = document.getElementById('d_upi').value;
+      const file = document.getElementById('d_ss').files[0];
+      const s = localStorage.getItem('fpz_user');
+      if(!s){ alert('Please login first'); return; }
+      const cur = JSON.parse(s);
+      if(!cur || !cur.backend_id){ alert('Please login first'); return; }
+      if(!amt || amt < 1){ alert('Enter amount'); return; }
+      if(!upi){ alert('Choose UPI'); return; }
+      const fd = new FormData();
+      fd.append('user_id', cur.backend_id);
+      fd.append('amount', amt);
+      fd.append('paid_to_upi', upi);
+      if(file) fd.append('screenshot', file);
+      try{
+        const r = await fetch(API_BASE + '/api/deposit/manual',{ method:'POST', body: fd });
+        const j = await r.json();
+        if(j && j.ok){ document.getElementById('d_msg').innerText='Deposit submitted — admin will verify.'; closeDeposit(); } else document.getElementById('d_msg').innerText='Deposit error';
+      }catch(e){ console.error(e); document.getElementById('d_msg').innerText='Network error'; }
+    }
+
+    async function submitWithdraw(){
+      const s = localStorage.getItem('fpz_user');
+      if(!s){ alert('Please login first'); return; }
+      const cur = JSON.parse(s);
+      if(!cur || !cur.backend_id){ alert('Please login first'); return; }
+      const amt = Number(document.getElementById('w_amt').value||0);
+      const upi = document.getElementById('w_upi').value.trim();
+      if(!amt || !upi){ alert('Enter amount and UPI'); return; }
+      try{
+        const r = await fetch(API_BASE + '/api/withdraw/request',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: cur.backend_id, amount: amt, payout_upi: upi })});
+        const j = await r.json();
+        if(j && j.ok){ document.getElementById('w_msg').innerText='Withdraw requested — admin will process.'; closeWithdraw(); } else document.getElementById('w_msg').innerText=(j.error||'Withdraw error');
+      }catch(e){ console.error(e); document.getElementById('w_msg').innerText='Network error'; }
+    }
 
   </script>
 </body>
