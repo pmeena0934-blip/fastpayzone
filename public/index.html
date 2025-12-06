@@ -138,7 +138,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    // --- YOUR FIREBASE CONFIG (use exactly this or replace with your project's) ---
+    // --- YOUR FIREBASE CONFIG (replace if different) ---
     const firebaseConfig = {
       apiKey: "AIzaSyCzioy8Julx4QfwhQxIGOLo1GRS2PHtBP0",
       authDomain: "fastpayzone.firebaseapp.com",
@@ -147,7 +147,6 @@
       messagingSenderId: "236438267358",
       appId: "1:236438267358:web:58de03cc82224e3f3ba94f"
     };
-    // --------------------------------------------------------------------------------
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -156,7 +155,6 @@
     function initRecaptcha(){
       try{
         if(window.recaptchaVerifier && typeof window.recaptchaVerifier.clear === 'function'){
-          // already exists — clear and recreate to be safe
           try{ window.recaptchaVerifier.clear(); }catch(e){ dbg('recap clear err:'+e.message); }
         }
       }catch(e){}
@@ -170,37 +168,58 @@
       let v = String(input || '').trim();
       v = v.replace(/\s+/g,'').replace(/[^0-9\+]/g,'');
       if(v.startsWith('0')) v = v.replace(/^0+/, '');
-      // if exactly 10 digits, assume India +91
       if(/^\d{10}$/.test(v)) v = '+91' + v;
-      // if starts with country code without plus like 9198... add plus
       if(/^[0-9]{11,}$/.test(v) && !v.startsWith('+')) v = '+' + v;
       return v;
     }
 
-    // SEND OTP
+    // ====== REPLACE sendOTP & verifyOTP WITH THIS TEST-BYPASS + VERBOSE DEBUG ======
+
     async function sendOTP(){
       const raw = document.getElementById('phone').value;
       const phone = normalizePhone(raw);
+      dbg('sendOTP start -> ' + phone);
       if(!phone){ showAuthMsg('Phone number daalo (+91...)'); return; }
-      showAuthMsg('OTP bhej rahe hain to ' + phone + ' ...');
 
+      // TEST BYPASS: if test number, don't call Firebase SMS (fast local flow)
+      if(phone === '+919999999999'){
+        dbg('TEST NUMBER detected — creating fake confirmationResult (bypass).');
+        // create a fake confirmationResult object with confirm(code) method
+        window.confirmationResult = {
+          confirm: (code) => {
+            dbg('Fake confirm called with code: ' + code);
+            return new Promise((resolve, reject) => {
+              if(String(code).trim() === '123456'){
+                // simulate firebase result.user
+                const fakeUser = { uid: 'test-'+Date.now(), phoneNumber: phone, displayName: 'Test User' };
+                resolve({ user: fakeUser });
+              } else {
+                reject(new Error('Invalid test OTP'));
+              }
+            });
+          }
+        };
+        showAuthMsg('Test confirmation ready — OTP (123456) dal kar Verify karo.');
+        return;
+      }
+
+      // NORMAL firebase flow for real numbers
       try{
-        // ensure recaptcha is fresh
+        showAuthMsg('OTP bhej rahe hain to ' + phone + ' ...');
         try{ if(!window.recaptchaVerifier) initRecaptcha(); }catch(e){ dbg('recap init err:'+e.message); }
-
         const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
         window.confirmationResult = confirmation;
         showAuthMsg('OTP bhej diya gaya. OTP daalkar Verify karo.');
-        dbg('confirmationResult set');
-        // start a small cooldown on Send button
+        dbg('confirmationResult set (firebase)');
         cooldownSendBtn();
       }catch(err){
         console.error('sendOTP err', err);
+        dbg('sendOTP err: ' + (err && err.message ? err.message : String(err)));
         showAuthMsg('OTP send error: ' + (err.message || err));
-        // try recreate recaptcha if something went wrong
         try{ initRecaptcha(); }catch(e){ dbg('recap recreate err:'+e.message); }
       }
     }
+
     // cooldown to avoid multiple sends
     function cooldownSendBtn(){
       const btn = document.getElementById('sendBtn');
@@ -216,13 +235,20 @@
       },1000);
     }
 
-    // VERIFY OTP
     async function verifyOTP(){
       const code = document.getElementById('otp').value.trim();
+      const phoneRaw = document.getElementById('phone').value;
+      const phone = normalizePhone(phoneRaw);
       if(!code){ showAuthMsg('OTP daalo'); return; }
-      if(!window.confirmationResult){ showAuthMsg('Please press Send OTP first'); return; }
       showAuthMsg('OTP verify kar rahe hain...');
+      dbg('verifyOTP called for ' + phone + ' with code ' + code);
       try{
+        if(!window.confirmationResult){
+          // If user forgot to press Send OTP, show hint (helps many)
+          showAuthMsg('Please press Send OTP first (or use test number +919999999999).');
+          dbg('No confirmationResult available (user must press Send OTP first).');
+          return;
+        }
         const result = await window.confirmationResult.confirm(code);
         const user = result.user;
         dbg('verify success user: ' + (user.phoneNumber || user.uid || 'user'));
@@ -230,6 +256,7 @@
         onLogin(user);
       }catch(err){
         console.error('verify err', err);
+        dbg('verify err: ' + (err && err.message ? err.message : String(err)));
         showAuthMsg('OTP verification failed: ' + (err.message || err));
       }
     }
@@ -353,6 +380,18 @@
         else document.getElementById('w_msg').innerText = (j.error || 'Withdraw error');
       }catch(e){ console.error(e); document.getElementById('w_msg').innerText='Network error'; }
     }
+
+    // extra watcher (shows confirm state repeatedly)
+    (function extraWatcher(){
+      dbg('Extra watcher active');
+      try{
+        const sb = document.getElementById('sendBtn');
+        if(sb) sb.addEventListener('click', ()=> dbg('Send OTP clicked'));
+        const vb = document.getElementById('verifyBtn');
+        if(vb) vb.addEventListener('click', ()=> dbg('Verify clicked'));
+      }catch(e){}
+      setInterval(()=>{ dbg('confirm? '+!!window.confirmationResult); }, 3000);
+    })();
 
   </script>
 </body>
